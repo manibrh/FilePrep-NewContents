@@ -1,4 +1,3 @@
-# legacy_postprocess.py
 import os
 import json
 import xml.etree.ElementTree as ET
@@ -41,32 +40,4 @@ def read_xliff(file_path):
 
     return translations, original_name, target_lang
 
-def run_legacy_postprocessing(input_dir, output_dir):
-    for filename in os.listdir(input_dir):
-        if filename.endswith('.xliff'):
-            xliff_path = os.path.join(input_dir, filename)
-            translations, original_name, lang_code = read_xliff(xliff_path)
-
-            ext = os.path.splitext(original_name)[1].lower()
-            output_file = os.path.join(output_dir, lang_code, os.path.basename(original_name))
-            os.makedirs(os.path.dirname(output_file), exist_ok=True)
-
-            if ext == '.json':
-                if os.path.exists(output_file):
-                    original = read_json(output_file)
-                else:
-                    original = {}
-                for k in translations:
-                    if k in original:
-                        original[k] = translations[k]
-                write_json(original, output_file)
-
-            elif ext == '.properties':
-                if os.path.exists(output_file):
-                    original = read_properties(output_file)
-                else:
-                    original = {}
-                for k in translations:
-                    if k in original:
-                        original[k] = translations[k]
-                write_properties(original, output_file)
+def run_lega_
