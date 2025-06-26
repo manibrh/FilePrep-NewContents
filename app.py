@@ -37,51 +37,62 @@ def process():
         os.makedirs(input_dir, exist_ok=True)
         os.makedirs(output_dir, exist_ok=True)
 
-        if workflow == 'legacy' and process_type == 'preprocess':
-            for file in request.files.getlist('source_files'):
-                filename = secure_filename(file.filename)
-                if filename:
-                    file.save(os.path.join(input_dir, f"source_{filename}"))
+        try:
+            if workflow == 'legacy' and process_type == 'preprocess':
+                # Save source files
+                for file in request.files.getlist('source_files'):
+                    filename = secure_filename(file.filename)
+                    if filename:
+                        file.save(os.path.join(input_dir, f"source_{filename}"))
 
-            for file in request.files.getlist('target_files'):
-                filename = secure_filename(file.filename)
-                if filename:
-                    file.save(os.path.join(input_dir, f"target_{filename}"))
-        else:
-            save_files(request.files.getlist('files'), input_dir)
-
-        if workflow == 'tep':
-            if process_type == 'preprocess':
-                run_tep_preprocessing(input_dir, output_dir)
+                # Unzip target ZIP
+                target_zip = request.files.get('target_zip')
+                if target_zip and target_zip.filename:
+                    zip_path = os.path.join(input_dir, 'target_langs.zip')
+                    target_zip.save(zip_path)
+                    extract_dir = os.path.join(input_dir, 'targets')
+                    os.makedirs(extract_dir, exist_ok=True)
+                    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                        zip_ref.extractall(extract_dir)
             else:
-                run_tep_postprocessing(input_dir, output_dir)
-        else:
-            if process_type == 'preprocess':
-                run_legacy_preprocessing(input_dir, output_dir)
+                save_files(request.files.getlist('files'), input_dir)
+
+            # Call appropriate function
+            if workflow == 'tep':
+                if process_type == 'preprocess':
+                    run_tep_preprocessing(input_dir, output_dir)
+                else:
+                    run_tep_postprocessing(input_dir, output_dir)
             else:
-                run_legacy_postprocessing(input_dir, output_dir)
+                if process_type == 'preprocess':
+                    run_legacy_preprocessing(input_dir, output_dir)
+                else:
+                    run_legacy_postprocessing(input_dir, output_dir)
 
-        if os.path.exists(TEMP_OUTPUT):
-            shutil.rmtree(TEMP_OUTPUT)
-        shutil.copytree(output_dir, TEMP_OUTPUT)
+            if os.path.exists(TEMP_OUTPUT):
+                shutil.rmtree(TEMP_OUTPUT)
+            shutil.copytree(output_dir, TEMP_OUTPUT)
 
-        zip_path = os.path.join(TEMP_OUTPUT, "batch.zip")
-        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            # Zip the output
+            zip_path = os.path.join(TEMP_OUTPUT, "batch.zip")
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for root, _, files in os.walk(TEMP_OUTPUT):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        arcname = os.path.relpath(file_path, TEMP_OUTPUT)
+                        if not arcname.endswith("batch.zip"):
+                            zipf.write(file_path, arcname=arcname)
+
+            output_files = []
             for root, _, files in os.walk(TEMP_OUTPUT):
                 for file in files:
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, TEMP_OUTPUT)
-                    if not arcname.endswith("batch.zip"):
-                        zipf.write(file_path, arcname=arcname)
+                    rel_path = os.path.relpath(os.path.join(root, file), TEMP_OUTPUT)
+                    if not rel_path.endswith("batch.zip"):
+                        output_files.append(rel_path.replace("\\", "/"))
 
-        output_files = []
-        for root, _, files in os.walk(TEMP_OUTPUT):
-            for file in files:
-                rel_path = os.path.relpath(os.path.join(root, file), TEMP_OUTPUT)
-                if not rel_path.endswith("batch.zip"):
-                    output_files.append(rel_path.replace("\\", "/"))
-
-        return jsonify({"status": "completed", "files": output_files})
+            return jsonify({"status": "completed", "files": output_files})
+        except Exception as e:
+            return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/download/<path:filename>')
 def download(filename):
