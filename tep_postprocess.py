@@ -1,3 +1,4 @@
+# tep_postprocess.py
 import os
 import json
 import xml.etree.ElementTree as ET
@@ -35,12 +36,9 @@ def write_output(translations, original_name, lang_code, output_dir):
             for k, v in translations.items():
                 f.write(f"{k}={v}\n")
 
-def run_postprocessing(xliff_dir, output_dir):
-    for filename in os.listdir(xliff_dir):
+def run_tep_postprocessing(input_dir, output_dir):
+    for filename in os.listdir(input_dir):
         if filename.endswith('.xliff'):
-            xliff_path = os.path.join(xliff_dir, filename)
+            xliff_path = os.path.join(input_dir, filename)
             translations, original_name, target_lang = read_xliff(xliff_path)
             write_output(translations, original_name, target_lang, output_dir)
-
-if __name__ == "__main__":
-    run_postprocessing("uploads/Target", "PostProcessed")
