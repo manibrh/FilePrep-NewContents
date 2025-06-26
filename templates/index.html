@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Localization Toolkit</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>🌐 Localization Toolkit</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flashes">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <div class="section">
+        <h2>📝 Preprocessing (Source to XLIFF)</h2>
+        <form method="post" action="/upload_source" enctype="multipart/form-data">
+            <input type="file" name="source_files" multiple>
+            <button type="submit">Upload & Convert</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2>📥 Postprocessing (XLIFF to Final Files)</h2>
+        <form method="post" action="/upload_target" enctype="multipart/form-data">
+            <input type="file" name="target_files" multiple>
+            <button type="submit">Upload & Convert</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2>📤 Download Processed Files</h2>
+        <h3>Preprocessed (XLIFF)</h3>
+        <ul>
+            {% for f in os.listdir('Preprocessed') %}
+              <li><a href="/downloads/Preprocessed/{{ f }}">{{ f }}</a></li>
+            {% endfor %}
+        </ul>
+        <h3>Postprocessed (Final)</h3>
+        {% for lang_dir in os.listdir('PostProcessed') %}
+          <h4>{{ lang_dir }}</h4>
+          <ul>
+            {% for f in os.listdir('PostProcessed/' + lang_dir) %}
+              <li><a href="/downloads/PostProcessed/{{ lang_dir }}/{{ f }}">{{ f }}</a></li>
+            {% endfor %}
+          </ul>
+        {% endfor %}
+    </div>
+</body>
+</html>
