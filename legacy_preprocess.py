@@ -34,17 +34,19 @@ def write_xliff(data, input_file, output_file, src_lang='en', tgt_lang='xx'):
 def run_legacy_preprocessing(input_dir, output_dir):
     errors = []
 
-    # Collect source files
+    # Step 1: Load source files
     source_files = {
         f.replace("source_", ""): os.path.join(input_dir, f)
         for f in os.listdir(input_dir)
         if f.startswith("source_") and os.path.isfile(os.path.join(input_dir, f))
     }
 
+    # Step 2: Check target directory
     targets_root = os.path.join(input_dir, "targets")
     if not os.path.exists(targets_root):
         raise Exception("Target ZIP not extracted or missing.")
 
+    # Step 3: Loop through language folders
     for lang_code in os.listdir(targets_root):
         lang_folder = os.path.join(targets_root, lang_code)
         if not os.path.isdir(lang_folder):
@@ -72,11 +74,13 @@ def run_legacy_preprocessing(input_dir, output_dir):
                     errors.append(f"❌ Unsupported file type: {base_name}")
                     continue
 
+                # Step 4: Filter keys
                 filtered = {k: v for k, v in src_data.items() if k in tgt_data}
                 if not filtered:
-                    errors.append(f"⚠️ No common keys in {base_name} ({lang_code})")
+                    errors.append(f"⚠️ No matching keys found in {base_name} ({lang_code})")
                     continue
 
+                # Step 5: Write XLIFF
                 output_file = os.path.join(output_dir, lang_code, base_name.replace(ext, ".xliff"))
                 write_xliff(filtered, target_path, output_file, tgt_lang=lang_code)
 
