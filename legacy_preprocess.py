@@ -32,7 +32,9 @@ def write_xliff(data, input_file, output_file, src_lang='en', tgt_lang='xx'):
     ET.ElementTree(xliff).write(output_file, encoding='utf-8', xml_declaration=True)
 
 def run_legacy_preprocessing(input_dir, output_dir):
-    # Load source files
+    errors = []
+
+    # Load all source files
     source_files = {
         f.replace("source_", ""): os.path.join(input_dir, f)
         for f in os.listdir(input_dir)
@@ -43,29 +45,35 @@ def run_legacy_preprocessing(input_dir, output_dir):
     if not os.path.exists(targets_root):
         raise Exception("Target ZIP not extracted or missing.")
 
+    # For each language
     for lang_code in os.listdir(targets_root):
         lang_folder = os.path.join(targets_root, lang_code)
         if not os.path.isdir(lang_folder):
             continue
 
-        for target_file in os.listdir(lang_folder):
-            base_name = os.path.basename(target_file)
-            if base_name not in source_files:
-                continue  # no matching source
-
-            source_path = source_files[base_name]
-            target_path = os.path.join(lang_folder, target_file)
-
-            ext = os.path.splitext(base_name)[1].lower()
-            if ext == '.json':
-                src_data = read_json(source_path)
-                tgt_data = read_json(target_path)
-            elif ext == '.properties':
-                src_data = read_properties(source_path)
-                tgt_data = read_properties(target_path)
-            else:
+        for base_name, source_path in source_files.items():
+            target_path = os.path.join(lang_folder, base_name)
+            if not os.path.exists(target_path):
+                errors.append(f"Missing target for {base_name} in {lang_code}")
                 continue
 
-            filtered = {k: v for k, v in src_data.items() if k in tgt_data}
-            output_file = os.path.join(output_dir, lang_code, base_name.replace(ext, ".xliff"))
-            write_xliff(filtered, target_path, output_file, tgt_lang=lang_code)
+            ext = os.path.splitext(base_name)[1].lower()
+            try:
+                if ext == '.json':
+                    src_data = read_json(source_path)
+                    tgt_data = read_json(target_path)
+                elif ext == '.properties':
+                    src_data = read_properties(source_path)
+                    tgt_data = read_properties(target_path)
+                else:
+                    errors.append(f"Unsupported file type: {base_name}")
+                    continue
+
+                filtered = {k: v for k, v in src_data.items() if k in tgt_data}
+                output_file = os.path.join(output_dir, lang_code, base_name.replace(ext, ".xliff"))
+                write_xliff(filtered, target_path, output_file, tgt_lang=lang_code)
+
+            except Exception as e:
+                errors.append(f"Failed processing {base_name} in {lang_code}: {str(e)}")
+
+    return errors
