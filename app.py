@@ -69,7 +69,9 @@ def process():
                     run_tep_postprocessing(input_dir, output_dir)
             else:
                 if process_type == 'preprocess':
-                    run_legacy_preprocessing(input_dir, output_dir)
+                #    run_legacy_preprocessing(input_dir, output_dir)
+                    errors = run_legacy_preprocessing(input_dir, output_dir)
+
                 else:
                     run_legacy_postprocessing(input_dir, output_dir)
 
@@ -94,7 +96,11 @@ def process():
                     if not rel_path.endswith("batch.zip"):
                         output_files.append(rel_path.replace("\\", "/"))
 
-            return jsonify({"status": "completed", "files": output_files})
+            return jsonify({
+    "status": "completed",
+    "files": output_files,
+    "errors": errors
+})
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
 
