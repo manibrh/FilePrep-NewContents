@@ -1,27 +1,15 @@
 # app.py
 import os
-from flask import Flask, render_template, request, send_from_directory, redirect, url_for, flash
-from werkzeug.utils import secure_filename
 import shutil
-import subprocess
-
-UPLOAD_FOLDER = 'uploads'
-SOURCE_DIR = os.path.join(UPLOAD_FOLDER, 'Source')
-TARGET_DIR = os.path.join(UPLOAD_FOLDER, 'Target')
-PREPROCESSED_DIR = 'Preprocessed'
-POSTPROCESSED_DIR = 'PostProcessed'
+import tempfile
+import zipfile
+from flask import Flask, render_template, request, send_file, redirect, url_for
+from werkzeug.utils import secure_filename
+from preprocess import run_preprocessing
+from postprocess import run_postprocessing
 
 app = Flask(__name__)
 app.secret_key = 'localization_secret'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-for folder in [SOURCE_DIR, TARGET_DIR, PREPROCESSED_DIR, POSTPROCESSED_DIR]:
-    os.makedirs(folder, exist_ok=True)
-
-def clear_dirs():
-    for folder in [SOURCE_DIR, TARGET_DIR, PREPROCESSED_DIR, POSTPROCESSED_DIR]:
-        shutil.rmtree(folder)
-        os.makedirs(folder, exist_ok=True)
 
 @app.route('/')
 def index():
@@ -29,40 +17,51 @@ def index():
 
 @app.route('/preprocess', methods=['POST'])
 def preprocess():
-    clear_dirs()
-    files = request.files.getlist('source_files')
-    for file in files:
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(SOURCE_DIR, filename))
-    subprocess.run(['python', 'preprocess.py'])
-    return redirect(url_for('download_preprocessed'))
+    with tempfile.TemporaryDirectory() as temp_dir:
+        source_dir = os.path.join(temp_dir, "Source")
+        output_dir = os.path.join(temp_dir, "Preprocessed")
+        os.makedirs(source_dir, exist_ok=True)
+        os.makedirs(output_dir, exist_ok=True)
+
+        files = request.files.getlist('source_files')
+        for file in files:
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(source_dir, filename))
+
+        run_preprocessing(source_dir, output_dir)
+
+        zip_path = os.path.join(temp_dir, "preprocessed_output.zip")
+        with zipfile.ZipFile(zip_path, 'w') as zipf:
+            for root, _, files in os.walk(output_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    zipf.write(file_path, arcname=os.path.relpath(file_path, output_dir))
+
+        return send_file(zip_path, as_attachment=True)
 
 @app.route('/postprocess', methods=['POST'])
 def postprocess():
-    clear_dirs()
-    files = request.files.getlist('xliff_files')
-    for file in files:
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(TARGET_DIR, filename))
-    subprocess.run(['python', 'postprocess.py'])
-    return redirect(url_for('download_postprocessed'))
+    with tempfile.TemporaryDirectory() as temp_dir:
+        xliff_dir = os.path.join(temp_dir, "Target")
+        output_dir = os.path.join(temp_dir, "PostProcessed")
+        os.makedirs(xliff_dir, exist_ok=True)
+        os.makedirs(output_dir, exist_ok=True)
 
-@app.route('/download/preprocessed')
-def download_preprocessed():
-    files = os.listdir(PREPROCESSED_DIR)
-    return render_template('download.html', files=files, folder=PREPROCESSED_DIR)
+        files = request.files.getlist('xliff_files')
+        for file in files:
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(xliff_dir, filename))
 
-@app.route('/download/postprocessed')
-def download_postprocessed():
-    subfolders = [f for f in os.listdir(POSTPROCESSED_DIR) if os.path.isdir(os.path.join(POSTPROCESSED_DIR, f))]
-    files = []
-    for folder in subfolders:
-        files += [os.path.join(folder, f) for f in os.listdir(os.path.join(POSTPROCESSED_DIR, folder))]
-    return render_template('download.html', files=files, folder=POSTPROCESSED_DIR)
+        run_postprocessing(xliff_dir, output_dir)
 
-@app.route('/download/<path:folder>/<filename>')
-def download_file(folder, filename):
-    return send_from_directory(folder, filename, as_attachment=True)
+        zip_path = os.path.join(temp_dir, "postprocessed_output.zip")
+        with zipfile.ZipFile(zip_path, 'w') as zipf:
+            for root, _, files in os.walk(output_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    zipf.write(file_path, arcname=os.path.relpath(file_path, output_dir))
+
+        return send_file(zip_path, as_attachment=True)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
