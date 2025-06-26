@@ -42,15 +42,21 @@
               <li><a href="/downloads/Preprocessed/{{ f }}">{{ f }}</a></li>
             {% endfor %}
         </ul>
-        <h3>Postprocessed (Final)</h3>
-        {% for lang_dir in os.listdir('PostProcessed') %}
-          <h4>{{ lang_dir }}</h4>
-          <ul>
-            {% for f in os.listdir('PostProcessed/' + lang_dir) %}
-              <li><a href="/downloads/PostProcessed/{{ lang_dir }}/{{ f }}">{{ f }}</a></li>
-            {% endfor %}
-          </ul>
-        {% endfor %}
+        <h3>Preprocessed (XLIFF)</h3>
+<ul>
+    {% for f in preprocessed %}
+      <li><a href="/downloads/Preprocessed/{{ f }}">{{ f }}</a></li>
+    {% endfor %}
+</ul>
+<h3>Postprocessed (Final)</h3>
+{% for lang_dir, files in postprocessed.items() %}
+  <h4>{{ lang_dir }}</h4>
+  <ul>
+    {% for f in files %}
+      <li><a href="/downloads/PostProcessed/{{ lang_dir }}/{{ f }}">{{ f }}</a></li>
+    {% endfor %}
+  </ul>
+{% endfor %}
     </div>
 </body>
 </html>
