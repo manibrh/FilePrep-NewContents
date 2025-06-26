@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, send_from_directory, redirect, url_for, flash
 import os
 import shutil
-from Preprocess import process_folder as preprocess_files
-from Postprocess import process_xliffs as postprocess_files
+from preprocess import process_folder as preprocess_files
+from postprocess import process_xliffs as postprocess_files
 
 app = Flask(__name__)
 app.secret_key = "localization_secret"
