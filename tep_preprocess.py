@@ -1,3 +1,4 @@
+# tep_preprocess.py
 import os
 import json
 import xml.etree.ElementTree as ET
@@ -33,9 +34,9 @@ def write_xliff(data, input_file, output_file, src_lang='en', tgt_lang='fr'):
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     tree.write(output_file, encoding='utf-8', xml_declaration=True)
 
-def run_preprocessing(source_dir, output_dir):
-    for filename in os.listdir(source_dir):
-        full_path = os.path.join(source_dir, filename)
+def run_tep_preprocessing(input_dir, output_dir):
+    for filename in os.listdir(input_dir):
+        full_path = os.path.join(input_dir, filename)
         base, ext = os.path.splitext(filename)
         if ext.lower() == '.json':
             data = read_json(full_path)
@@ -45,6 +46,3 @@ def run_preprocessing(source_dir, output_dir):
             continue
         output_file = os.path.join(output_dir, f"{base}.xliff")
         write_xliff(data, full_path, output_file)
-
-if __name__ == "__main__":
-    run_preprocessing("uploads/Source", "Preprocessed")
