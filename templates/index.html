@@ -1,62 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Localization Toolkit</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>Localization Web App</title>
 </head>
 <body>
-    <h1>🌐 Localization Toolkit</h1>
+    <h1>Localization Converter</h1>
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul class="flashes">
-          {% for message in messages %}
-            <li>{{ message }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
+    <h2>Preprocess: JSON / Properties → XLIFF</h2>
+    <form action="/preprocess" method="post" enctype="multipart/form-data">
+        <input type="file" name="source_files" multiple required>
+        <button type="submit">Start Preprocessing</button>
+    </form>
 
-    <div class="section">
-        <h2>📝 Preprocessing (Source to XLIFF)</h2>
-        <form method="post" action="/upload_source" enctype="multipart/form-data">
-            <input type="file" name="source_files" multiple>
-            <button type="submit">Upload & Convert</button>
-        </form>
-    </div>
-
-    <div class="section">
-        <h2>📥 Postprocessing (XLIFF to Final Files)</h2>
-        <form method="post" action="/upload_target" enctype="multipart/form-data">
-            <input type="file" name="target_files" multiple>
-            <button type="submit">Upload & Convert</button>
-        </form>
-    </div>
-
-    <div class="section">
-        <h2>📤 Download Processed Files</h2>
-        <h3>Preprocessed (XLIFF)</h3>
-        <ul>
-            {% for f in os.listdir('Preprocessed') %}
-              <li><a href="/downloads/Preprocessed/{{ f }}">{{ f }}</a></li>
-            {% endfor %}
-        </ul>
-        <h3>Preprocessed (XLIFF)</h3>
-<ul>
-    {% for f in preprocessed %}
-      <li><a href="/downloads/Preprocessed/{{ f }}">{{ f }}</a></li>
-    {% endfor %}
-</ul>
-<h3>Postprocessed (Final)</h3>
-{% for lang_dir, files in postprocessed.items() %}
-  <h4>{{ lang_dir }}</h4>
-  <ul>
-    {% for f in files %}
-      <li><a href="/downloads/PostProcessed/{{ lang_dir }}/{{ f }}">{{ f }}</a></li>
-    {% endfor %}
-  </ul>
-{% endfor %}
-    </div>
+    <h2>Postprocess: XLIFF → JSON / Properties</h2>
+    <form action="/postprocess" method="post" enctype="multipart/form-data">
+        <input type="file" name="xliff_files" multiple required>
+        <button type="submit">Start Postprocessing</button>
+    </form>
 </body>
 </html>
