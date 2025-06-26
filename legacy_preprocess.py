@@ -1,4 +1,3 @@
-# legacy_preprocess.py
 import os
 import json
 import xml.etree.ElementTree as ET
@@ -58,6 +57,5 @@ def run_legacy_preprocessing(input_dir, output_dir):
         raise ValueError("Unsupported file format")
 
     filtered_data = {k: v for k, v in source_data.items() if k in target_data}
-
     output_file = os.path.join(output_dir, os.path.splitext(os.path.basename(target_file))[0] + '.xliff')
     write_xliff(filtered_data, target_file, output_file)
