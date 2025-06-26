@@ -5,8 +5,18 @@
   <title>Localization Processor</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background-color: #f8f9fa; padding: 2em; }
-    .container { max-width: 800px; margin: auto; background: white; padding: 2em; border-radius: 0.5em; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+    body {
+      background-color: #f8f9fa;
+      padding: 2em;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 2em;
+      border-radius: 0.5em;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 <body>
@@ -33,19 +43,21 @@
       </select>
     </div>
 
+    <!-- Multi file for TEP or Legacy Postprocess -->
     <div class="mb-3" id="tepUpload">
       <label class="form-label">Upload Files</label>
-      <input type="file" class="form-control" name="files" id="fileInput" multiple required>
+      <input type="file" class="form-control" name="files" multiple required>
     </div>
 
+    <!-- Multiple Source and Target for Legacy Preprocess -->
     <div class="row" id="legacyUpload" style="display:none;">
       <div class="col-md-6">
-        <label class="form-label">Source File</label>
-        <input type="file" class="form-control" name="files" id="sourceFile">
+        <label class="form-label">Source Files</label>
+        <input type="file" class="form-control" name="source_files" multiple>
       </div>
       <div class="col-md-6">
-        <label class="form-label">Target File</label>
-        <input type="file" class="form-control" name="files" id="targetFile">
+        <label class="form-label">Target Files</label>
+        <input type="file" class="form-control" name="target_files" multiple>
       </div>
     </div>
 
@@ -73,37 +85,44 @@
   const tepUpload = document.getElementById('tepUpload');
   const legacyUpload = document.getElementById('legacyUpload');
 
+  function clearStatus() {
+    status.style.display = 'none';
+    results.style.display = 'none';
+    status.textContent = '';
+    fileLinks.innerHTML = '';
+  }
+
   function updateUploadUI() {
-  const workflow = workflowSelect.value;
-  const processType = document.querySelector('input[name="processType"]:checked').value;
+    clearStatus();
+    const workflow = workflowSelect.value;
+    const processType = document.querySelector('input[name="processType"]:checked').value;
+    const isLegacyPreprocess = workflow === 'legacy' && processType === 'preprocess';
 
-  const isLegacyPreprocess = workflow === 'legacy' && processType === 'preprocess';
+    tepUpload.style.display = isLegacyPreprocess ? 'none' : 'block';
+    legacyUpload.style.display = isLegacyPreprocess ? 'flex' : 'none';
+  }
 
-  tepUpload.style.display = isLegacyPreprocess ? 'none' : 'block';
-  legacyUpload.style.display = isLegacyPreprocess ? 'flex' : 'none';
-}
-
-workflowSelect.addEventListener('change', updateUploadUI);
-document.querySelectorAll('input[name="processType"]').forEach(el => {
-  el.addEventListener('change', updateUploadUI);
-});
-
-updateUploadUI(); // initialize on load
+  workflowSelect.addEventListener('change', updateUploadUI);
+  document.querySelectorAll('input[name="processType"]').forEach(el => {
+    el.addEventListener('change', updateUploadUI);
+  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    clearStatus();
     status.style.display = 'block';
     status.textContent = 'Processing...';
-    results.style.display = 'none';
-    fileLinks.innerHTML = '';
 
     const formData = new FormData(form);
-    const processType = form.querySelector('input[name="processType"]:checked').value;
+    const processType = document.querySelector('input[name="processType"]:checked').value;
     formData.append('processType', processType);
 
-    const res = await fetch('/process', { method: 'POST', body: formData });
-    const data = await res.json();
+    const res = await fetch('/process', {
+      method: 'POST',
+      body: formData
+    });
 
+    const data = await res.json();
     if (data.status === 'completed') {
       status.textContent = '✅ Process completed!';
       results.style.display = 'block';
@@ -112,13 +131,15 @@ updateUploadUI(); // initialize on load
         const link = document.createElement('a');
         link.href = `/download/${file}`;
         link.textContent = `Download ${file}`;
-        link.className = 'btn btn-outline-secondary btn-sm me-2';
+        link.className = 'btn btn-outline-secondary btn-sm me-2 mb-2';
         fileLinks.appendChild(link);
       });
     } else {
       status.textContent = '❌ Something went wrong.';
     }
   });
+
+  updateUploadUI(); // initialize on load
 </script>
 </body>
 </html>
