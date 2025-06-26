@@ -1,60 +1,68 @@
-from flask import Flask, render_template, request, send_from_directory, redirect, url_for, flash
+# app.py
 import os
+from flask import Flask, render_template, request, send_from_directory, redirect, url_for, flash
+from werkzeug.utils import secure_filename
 import shutil
-from preprocess import process_folder as preprocess_files
-from postprocess import process_xliffs as postprocess_files
+import subprocess
+
+UPLOAD_FOLDER = 'uploads'
+SOURCE_DIR = os.path.join(UPLOAD_FOLDER, 'Source')
+TARGET_DIR = os.path.join(UPLOAD_FOLDER, 'Target')
+PREPROCESSED_DIR = 'Preprocessed'
+POSTPROCESSED_DIR = 'PostProcessed'
 
 app = Flask(__name__)
-app.secret_key = "localization_secret"
+app.secret_key = 'localization_secret'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-UPLOAD_SOURCE = "Source"
-UPLOAD_TARGET = "Target"
-PREPROCESSED = "Preprocessed"
-POSTPROCESSED = "PostProcessed"
-
-# Ensure all dirs exist
-for folder in [UPLOAD_SOURCE, UPLOAD_TARGET, PREPROCESSED, POSTPROCESSED]:
+for folder in [SOURCE_DIR, TARGET_DIR, PREPROCESSED_DIR, POSTPROCESSED_DIR]:
     os.makedirs(folder, exist_ok=True)
+
+def clear_dirs():
+    for folder in [SOURCE_DIR, TARGET_DIR, PREPROCESSED_DIR, POSTPROCESSED_DIR]:
+        shutil.rmtree(folder)
+        os.makedirs(folder, exist_ok=True)
 
 @app.route('/')
 def index():
-    preprocessed_files = os.listdir("Preprocessed")
-    postprocessed_dirs = {}
-    for lang_dir in os.listdir("PostProcessed"):
-        lang_path = os.path.join("PostProcessed", lang_dir)
-        if os.path.isdir(lang_path):
-            postprocessed_dirs[lang_dir] = os.listdir(lang_path)
-    return render_template('index.html', preprocessed=preprocessed_files, postprocessed=postprocessed_dirs)
+    return render_template('index.html')
 
-@app.route('/upload_source', methods=['POST'])
-def upload_source():
+@app.route('/preprocess', methods=['POST'])
+def preprocess():
+    clear_dirs()
     files = request.files.getlist('source_files')
     for file in files:
-        if file.filename.endswith(('.json', '.properties')):
-            file.save(os.path.join(UPLOAD_SOURCE, file.filename))
-    preprocess_files()
-    flash("✅ Preprocessing complete.")
-    return redirect(url_for('index'))
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(SOURCE_DIR, filename))
+    subprocess.run(['python', 'preprocess.py'])
+    return redirect(url_for('download_preprocessed'))
 
-@app.route('/upload_target', methods=['POST'])
-def upload_target():
-    files = request.files.getlist('target_files')
+@app.route('/postprocess', methods=['POST'])
+def postprocess():
+    clear_dirs()
+    files = request.files.getlist('xliff_files')
     for file in files:
-        if file.filename.endswith('.xliff'):
-            file.save(os.path.join(UPLOAD_TARGET, file.filename))
-    postprocess_files()
-    flash("✅ Postprocessing complete.")
-    return redirect(url_for('index'))
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(TARGET_DIR, filename))
+    subprocess.run(['python', 'postprocess.py'])
+    return redirect(url_for('download_postprocessed'))
 
-@app.route('/downloads/<folder>/<path:filename>')
+@app.route('/download/preprocessed')
+def download_preprocessed():
+    files = os.listdir(PREPROCESSED_DIR)
+    return render_template('download.html', files=files, folder=PREPROCESSED_DIR)
+
+@app.route('/download/postprocessed')
+def download_postprocessed():
+    subfolders = [f for f in os.listdir(POSTPROCESSED_DIR) if os.path.isdir(os.path.join(POSTPROCESSED_DIR, f))]
+    files = []
+    for folder in subfolders:
+        files += [os.path.join(folder, f) for f in os.listdir(os.path.join(POSTPROCESSED_DIR, folder))]
+    return render_template('download.html', files=files, folder=POSTPROCESSED_DIR)
+
+@app.route('/download/<path:folder>/<filename>')
 def download_file(folder, filename):
     return send_from_directory(folder, filename, as_attachment=True)
 
-@app.route('/list_files/<folder>')
-def list_files(folder):
-    path = folder
-    files = os.listdir(path)
-    return {"files": files}
-
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
