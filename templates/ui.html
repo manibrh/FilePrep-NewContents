@@ -73,15 +73,22 @@
   const tepUpload = document.getElementById('tepUpload');
   const legacyUpload = document.getElementById('legacyUpload');
 
-  workflowSelect.addEventListener('change', () => {
-    if (workflowSelect.value === 'legacy') {
-      tepUpload.style.display = 'none';
-      legacyUpload.style.display = 'flex';
-    } else {
-      tepUpload.style.display = 'block';
-      legacyUpload.style.display = 'none';
-    }
-  });
+  function updateUploadUI() {
+  const workflow = workflowSelect.value;
+  const processType = document.querySelector('input[name="processType"]:checked').value;
+
+  const isLegacyPreprocess = workflow === 'legacy' && processType === 'preprocess';
+
+  tepUpload.style.display = isLegacyPreprocess ? 'none' : 'block';
+  legacyUpload.style.display = isLegacyPreprocess ? 'flex' : 'none';
+}
+
+workflowSelect.addEventListener('change', updateUploadUI);
+document.querySelectorAll('input[name="processType"]').forEach(el => {
+  el.addEventListener('change', updateUploadUI);
+});
+
+updateUploadUI(); // initialize on load
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
