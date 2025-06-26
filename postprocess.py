@@ -2,9 +2,6 @@ import os
 import json
 import xml.etree.ElementTree as ET
 
-TARGET_DIR = os.path.join(os.getcwd(), "Target")
-POSTPROCESSED_DIR = os.path.join(os.getcwd(), "PostProcessed")
-
 def read_xliff(file_path):
     tree = ET.parse(file_path)
     root = tree.getroot()
@@ -22,8 +19,8 @@ def read_xliff(file_path):
 
     return translations, original_name, target_lang
 
-def write_output(translations, original_name, lang_code):
-    lang_dir = os.path.join(POSTPROCESSED_DIR, lang_code)
+def write_output(translations, original_name, lang_code, output_dir):
+    lang_dir = os.path.join(output_dir, lang_code)
     os.makedirs(lang_dir, exist_ok=True)
 
     base_name = os.path.splitext(original_name)[0]
@@ -37,18 +34,13 @@ def write_output(translations, original_name, lang_code):
         with open(output_path, 'w', encoding='utf-8') as f:
             for k, v in translations.items():
                 f.write(f"{k}={v}\n")
-    else:
-        print(f"❌ Unsupported output format: {ext}")
-        return
 
-    print(f"✅ {original_name} → {output_path}")
-
-def process_xliffs():
-    for filename in os.listdir(TARGET_DIR):
+def run_postprocessing(xliff_dir, output_dir):
+    for filename in os.listdir(xliff_dir):
         if filename.endswith('.xliff'):
-            xliff_path = os.path.join(TARGET_DIR, filename)
+            xliff_path = os.path.join(xliff_dir, filename)
             translations, original_name, target_lang = read_xliff(xliff_path)
-            write_output(translations, original_name, target_lang)
+            write_output(translations, original_name, target_lang, output_dir)
 
 if __name__ == "__main__":
-    process_xliffs()
+    run_postprocessing("uploads/Target", "PostProcessed")
