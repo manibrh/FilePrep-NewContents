@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Localization Processor</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    .container { max-width: 600px; margin: auto; }
+    .toggle-group { margin-bottom: 1em; }
+    .status { margin-top: 1em; font-weight: bold; }
+    .hidden { display: none; }
+    .file-list a { display: block; margin: 0.5em 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Localization Processor</h2>
+    <form id="processForm">
+      <div class="toggle-group">
+        <label><input type="radio" name="processType" value="preprocess" checked> Preprocess</label><br>
+        <label><input type="radio" name="processType" value="postprocess"> Postprocess</label>
+      </div>
+
+      <div class="toggle-group">
+        <label>Workflow:
+          <select name="workflow" required>
+            <option value="tep">TEP (New Content)</option>
+            <option value="legacy">Legacy Review</option>
+          </select>
+        </label>
+      </div>
+
+      <input type="file" name="files" id="fileInput" multiple required><br><br>
+      <button type="submit">Start Processing</button>
+    </form>
+
+    <div id="status" class="status hidden">Processing...</div>
+    <div id="results" class="file-list hidden">
+      <h4>Processed Files:</h4>
+      <div id="fileLinks"></div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('processForm');
+    const status = document.getElementById('status');
+    const results = document.getElementById('results');
+    const fileLinks = document.getElementById('fileLinks');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      status.classList.remove('hidden');
+      results.classList.add('hidden');
+      fileLinks.innerHTML = '';
+      status.textContent = 'Processing...';
+
+      const formData = new FormData(form);
+      const processType = form.querySelector('input[name="processType"]:checked').value;
+      formData.append('processType', processType);
+
+      const res = await fetch('/process', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+      if (data.status === 'completed') {
+        status.textContent = '✅ Process completed!';
+        results.classList.remove('hidden');
+        data.files.forEach(file => {
+          const link = document.createElement('a');
+          link.href = `/download/${file}`;
+          link.textContent = `Download ${file}`;
+          fileLinks.appendChild(link);
+        });
+      } else {
+        status.textContent = '❌ Something went wrong.';
+      }
+    });
+  </script>
+</body>
+</html>
