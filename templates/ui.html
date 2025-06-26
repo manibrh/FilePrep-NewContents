@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Localization Processor</title>
+  <title>File Preparation Tool</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
@@ -43,21 +43,21 @@
       </select>
     </div>
 
-    <!-- Multi file for TEP or Legacy Postprocess -->
+    <!-- For TEP and Legacy Postprocess -->
     <div class="mb-3" id="tepUpload">
       <label class="form-label">Upload Files</label>
-      <input type="file" class="form-control" name="files" multiple required>
+      <input type="file" class="form-control" name="files" multiple>
     </div>
 
-    <!-- Multiple Source and Target for Legacy Preprocess -->
+    <!-- For Legacy Preprocess -->
     <div class="row" id="legacyUpload" style="display:none;">
       <div class="col-md-6">
         <label class="form-label">Source Files</label>
         <input type="file" class="form-control" name="source_files" multiple>
       </div>
       <div class="col-md-6">
-        <label class="form-label">Target Files</label>
-        <input type="file" class="form-control" name="target_files" multiple>
+        <label class="form-label">Target ZIP (Folder by Language)</label>
+        <input type="file" class="form-control" name="target_zip" accept=".zip">
       </div>
     </div>
 
@@ -71,6 +71,16 @@
     <h4>Processed Files:</h4>
     <div id="fileLinks" class="mb-2"></div>
     <a id="downloadZip" class="btn btn-success" href="#" download>Download All as ZIP</a>
+  </div>
+
+  <div class="mt-5">
+    <h5>📝 Quick Notes:</h5>
+    <ul>
+      <li><strong>TEP Workflow:</strong> Upload source JSON/Properties and download XLIFF/localized files.</li>
+      <li><strong>Legacy Preprocess:</strong> Upload source files + a ZIP with target files in language folders.</li>
+      <li><strong>Legacy Postprocess:</strong> Upload translated bilingual XLIFF files.</li>
+      <li><strong>Download ZIP</strong> appears after successful processing.</li>
+    </ul>
   </div>
 </div>
 
@@ -87,8 +97,8 @@
 
   function clearStatus() {
     status.style.display = 'none';
-    results.style.display = 'none';
     status.textContent = '';
+    results.style.display = 'none';
     fileLinks.innerHTML = '';
   }
 
@@ -96,16 +106,16 @@
     clearStatus();
     const workflow = workflowSelect.value;
     const processType = document.querySelector('input[name="processType"]:checked').value;
-    const isLegacyPreprocess = workflow === 'legacy' && processType === 'preprocess';
+    const isLegacyPre = workflow === 'legacy' && processType === 'preprocess';
 
-    tepUpload.style.display = isLegacyPreprocess ? 'none' : 'block';
-    legacyUpload.style.display = isLegacyPreprocess ? 'flex' : 'none';
+    tepUpload.style.display = isLegacyPre ? 'none' : 'block';
+    legacyUpload.style.display = isLegacyPre ? 'flex' : 'none';
   }
 
   workflowSelect.addEventListener('change', updateUploadUI);
-  document.querySelectorAll('input[name="processType"]').forEach(el => {
-    el.addEventListener('change', updateUploadUI);
-  });
+  document.querySelectorAll('input[name="processType"]').forEach(el =>
+    el.addEventListener('change', updateUploadUI)
+  );
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -114,32 +124,34 @@
     status.textContent = 'Processing...';
 
     const formData = new FormData(form);
-    const processType = document.querySelector('input[name="processType"]:checked').value;
+    const processType = form.querySelector('input[name="processType"]:checked').value;
     formData.append('processType', processType);
 
-    const res = await fetch('/process', {
-      method: 'POST',
-      body: formData
-    });
+    try {
+      const res = await fetch('/process', { method: 'POST', body: formData });
+      const data = await res.json();
 
-    const data = await res.json();
-    if (data.status === 'completed') {
-      status.textContent = '✅ Process completed!';
-      results.style.display = 'block';
-      downloadZip.href = '/download/batch.zip';
-      data.files.forEach(file => {
-        const link = document.createElement('a');
-        link.href = `/download/${file}`;
-        link.textContent = `Download ${file}`;
-        link.className = 'btn btn-outline-secondary btn-sm me-2 mb-2';
-        fileLinks.appendChild(link);
-      });
-    } else {
-      status.textContent = '❌ Something went wrong.';
+      if (data.status === 'completed') {
+        status.textContent = '✅ Process completed!';
+        results.style.display = 'block';
+        downloadZip.href = '/download/batch.zip';
+        data.files.forEach(file => {
+          const link = document.createElement('a');
+          link.href = `/download/${file}`;
+          link.textContent = `Download ${file}`;
+          link.className = 'btn btn-outline-secondary btn-sm me-2 mb-2';
+          fileLinks.appendChild(link);
+        });
+      } else {
+        status.textContent = '❌ Error: ' + (data.message || 'Unknown processing error');
+      }
+    } catch (err) {
+      status.textContent = '❌ Network or server error. Please check the console.';
+      console.error(err);
     }
   });
 
-  updateUploadUI(); // initialize on load
+  updateUploadUI();
 </script>
 </body>
 </html>
