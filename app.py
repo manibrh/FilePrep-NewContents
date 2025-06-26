@@ -5,10 +5,10 @@ import tempfile
 import zipfile
 from flask import Flask, render_template, request, send_file, jsonify
 from werkzeug.utils import secure_filename
-from tep_preprocess import run_tep_preprocessing
-from tep_postprocess import run_tep_postprocessing
-from legacy_preprocess import run_legacy_preprocessing
-from legacy_postprocess import run_legacy_postprocessing
+from tep_preprocess import run_preprocessing as run_tep_preprocessing
+from tep_postprocess import run_postprocessing as run_tep_postprocessing
+from legacy_preprocess import run_preprocessing as run_legacy_preprocessing
+from legacy_postprocess import run_postprocessing as run_legacy_postprocessing
 
 app = Flask(__name__)
 app.secret_key = 'localization_secret'
