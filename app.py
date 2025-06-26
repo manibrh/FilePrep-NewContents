@@ -39,12 +39,16 @@ def process():
         os.makedirs(output_dir, exist_ok=True)
 
         if workflow == 'legacy' and process_type == 'preprocess':
-            for file in files:
-                filename = secure_filename(file.filename)
-                if 'source' in filename.lower():
-                    file.save(os.path.join(input_dir, 'source_' + filename))
-                elif 'target' in filename.lower():
-                    file.save(os.path.join(input_dir, 'target_' + filename))
+    for file in request.files.getlist('source_files'):
+        filename = secure_filename(file.filename)
+        if filename:
+            file.save(os.path.join(input_dir, f"source_{filename}"))
+
+    for file in request.files.getlist('target_files'):
+        filename = secure_filename(file.filename)
+        if filename:
+            file.save(os.path.join(input_dir, f"target_{filename}"))
+            
         else:
             save_files(files, input_dir)
 
