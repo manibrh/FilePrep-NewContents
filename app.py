@@ -19,7 +19,7 @@ def save_files(files, folder):
     for file in files:
         filename = secure_filename(file.filename)
         if not filename:
-            continue  # skip if no file was selected
+            continue
         file.save(os.path.join(folder, filename))
 
 @app.route('/')
@@ -30,7 +30,6 @@ def index():
 def process():
     workflow = request.form.get('workflow')
     process_type = request.form.get('processType')
-    files = request.files.getlist('files')
 
     with tempfile.TemporaryDirectory() as temp_dir:
         input_dir = os.path.join(temp_dir, 'Input')
@@ -38,19 +37,18 @@ def process():
         os.makedirs(input_dir, exist_ok=True)
         os.makedirs(output_dir, exist_ok=True)
 
-if workflow == 'legacy' and process_type == 'preprocess':
-    for file in request.files.getlist('source_files'):
-        filename = secure_filename(file.filename)
-        if filename:
-            file.save(os.path.join(input_dir, f"source_{filename}"))
+        if workflow == 'legacy' and process_type == 'preprocess':
+            for file in request.files.getlist('source_files'):
+                filename = secure_filename(file.filename)
+                if filename:
+                    file.save(os.path.join(input_dir, f"source_{filename}"))
 
-    for file in request.files.getlist('target_files'):
-        filename = secure_filename(file.filename)
-        if filename:
-            file.save(os.path.join(input_dir, f"target_{filename}"))
-            
+            for file in request.files.getlist('target_files'):
+                filename = secure_filename(file.filename)
+                if filename:
+                    file.save(os.path.join(input_dir, f"target_{filename}"))
         else:
-            save_files(files, input_dir)
+            save_files(request.files.getlist('files'), input_dir)
 
         if workflow == 'tep':
             if process_type == 'preprocess':
