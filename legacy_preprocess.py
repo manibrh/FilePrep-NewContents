@@ -34,18 +34,17 @@ def write_xliff(data, input_file, output_file, src_lang='en', tgt_lang='xx'):
 def run_legacy_preprocessing(input_dir, output_dir):
     errors = []
 
-    # Load all source files
+    # Collect source files
     source_files = {
         f.replace("source_", ""): os.path.join(input_dir, f)
         for f in os.listdir(input_dir)
-        if f.startswith("source_")
+        if f.startswith("source_") and os.path.isfile(os.path.join(input_dir, f))
     }
 
     targets_root = os.path.join(input_dir, "targets")
     if not os.path.exists(targets_root):
         raise Exception("Target ZIP not extracted or missing.")
 
-    # For each language
     for lang_code in os.listdir(targets_root):
         lang_folder = os.path.join(targets_root, lang_code)
         if not os.path.isdir(lang_folder):
@@ -54,26 +53,34 @@ def run_legacy_preprocessing(input_dir, output_dir):
         for base_name, source_path in source_files.items():
             target_path = os.path.join(lang_folder, base_name)
             if not os.path.exists(target_path):
-                errors.append(f"Missing target for {base_name} in {lang_code}")
+                errors.append(f"❌ Missing target for {base_name} in {lang_code}")
                 continue
 
             ext = os.path.splitext(base_name)[1].lower()
             try:
                 if ext == '.json':
-                    src_data = read_json(source_path)
-                    tgt_data = read_json(target_path)
+                    try:
+                        src_data = read_json(source_path)
+                        tgt_data = read_json(target_path)
+                    except Exception as e:
+                        errors.append(f"❌ JSON read error in {lang_code}/{base_name}: {str(e)}")
+                        continue
                 elif ext == '.properties':
                     src_data = read_properties(source_path)
                     tgt_data = read_properties(target_path)
                 else:
-                    errors.append(f"Unsupported file type: {base_name}")
+                    errors.append(f"❌ Unsupported file type: {base_name}")
                     continue
 
                 filtered = {k: v for k, v in src_data.items() if k in tgt_data}
+                if not filtered:
+                    errors.append(f"⚠️ No common keys in {base_name} ({lang_code})")
+                    continue
+
                 output_file = os.path.join(output_dir, lang_code, base_name.replace(ext, ".xliff"))
                 write_xliff(filtered, target_path, output_file, tgt_lang=lang_code)
 
             except Exception as e:
-                errors.append(f"Failed processing {base_name} in {lang_code}: {str(e)}")
+                errors.append(f"❌ Failed processing {base_name} in {lang_code}: {str(e)}")
 
     return errors
