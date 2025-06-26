@@ -145,7 +145,19 @@
           link.className = 'btn btn-outline-secondary btn-sm me-2 mb-2';
           fileLinks.appendChild(link);
         });
-      } else {
+      } 
+if (data.errors && data.errors.length > 0) {
+  const errorList = document.createElement('ul');
+  errorList.className = 'text-danger';
+  data.errors.forEach(msg => {
+    const li = document.createElement('li');
+    li.textContent = msg;
+    errorList.appendChild(li);
+  });
+  status.appendChild(errorList);
+}      
+
+      else {
         status.textContent = '❌ Error: ' + (data.message || 'Unknown processing error');
       }
     } catch (err) {
