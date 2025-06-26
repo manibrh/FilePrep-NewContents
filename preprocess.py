@@ -2,9 +2,6 @@ import os
 import json
 import xml.etree.ElementTree as ET
 
-SOURCE_DIR = os.path.join(os.getcwd(), "Source")
-PREPROCESSED_DIR = os.path.join(os.getcwd(), "Preprocessed")
-
 def read_json(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         return json.load(f)
@@ -33,13 +30,12 @@ def write_xliff(data, input_file, output_file, src_lang='en', tgt_lang='fr'):
         ET.SubElement(tu, 'source').text = value
 
     tree = ET.ElementTree(xliff)
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
     tree.write(output_file, encoding='utf-8', xml_declaration=True)
-    print(f"✅ {input_file} → {output_file}")
 
-def process_folder():
-    os.makedirs(PREPROCESSED_DIR, exist_ok=True)
-    for filename in os.listdir(SOURCE_DIR):
-        full_path = os.path.join(SOURCE_DIR, filename)
+def run_preprocessing(source_dir, output_dir):
+    for filename in os.listdir(source_dir):
+        full_path = os.path.join(source_dir, filename)
         base, ext = os.path.splitext(filename)
         if ext.lower() == '.json':
             data = read_json(full_path)
@@ -47,8 +43,8 @@ def process_folder():
             data = read_properties(full_path)
         else:
             continue
-        output_file = os.path.join(PREPROCESSED_DIR, f"{base}.xliff")
+        output_file = os.path.join(output_dir, f"{base}.xliff")
         write_xliff(data, full_path, output_file)
 
 if __name__ == "__main__":
-    process_folder()
+    run_preprocessing("uploads/Source", "Preprocessed")
