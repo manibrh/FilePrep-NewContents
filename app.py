@@ -18,6 +18,8 @@ def save_files(files, folder):
     os.makedirs(folder, exist_ok=True)
     for file in files:
         filename = secure_filename(file.filename)
+        if not filename:
+            continue  # skip if no file was selected
         file.save(os.path.join(folder, filename))
 
 @app.route('/')
