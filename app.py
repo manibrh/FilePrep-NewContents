@@ -51,7 +51,8 @@ def process():
                 run_legacy_postprocessing(input_dir, output_dir)
 
         # Save results to static folder for persistent download
-        shutil.rmtree(TEMP_OUTPUT)
+        if os.path.exists(TEMP_OUTPUT):
+            shutil.rmtree(TEMP_OUTPUT)
         shutil.copytree(output_dir, TEMP_OUTPUT)
 
         output_files = []
