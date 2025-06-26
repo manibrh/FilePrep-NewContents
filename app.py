@@ -18,7 +18,13 @@ for folder in [UPLOAD_SOURCE, UPLOAD_TARGET, PREPROCESSED, POSTPROCESSED]:
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    preprocessed_files = os.listdir("Preprocessed")
+    postprocessed_dirs = {}
+    for lang_dir in os.listdir("PostProcessed"):
+        lang_path = os.path.join("PostProcessed", lang_dir)
+        if os.path.isdir(lang_path):
+            postprocessed_dirs[lang_dir] = os.listdir(lang_path)
+    return render_template('index.html', preprocessed=preprocessed_files, postprocessed=postprocessed_dirs)
 
 @app.route('/upload_source', methods=['POST'])
 def upload_source():
