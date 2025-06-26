@@ -1,4 +1,3 @@
-# tep_postprocess.py
 import os
 import json
 import xml.etree.ElementTree as ET
