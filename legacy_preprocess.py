@@ -34,28 +34,28 @@ def write_xliff(data, input_file, output_file, src_lang='en', tgt_lang='fr'):
     tree.write(output_file, encoding='utf-8', xml_declaration=True)
 
 def run_legacy_preprocessing(input_dir, output_dir):
-    source_file = None
-    target_file = None
+    source_files = [f for f in os.listdir(input_dir) if f.startswith('source_')]
+    target_files = [f for f in os.listdir(input_dir) if f.startswith('target_')]
 
-    for f in os.listdir(input_dir):
-        if 'source' in f.lower():
-            source_file = os.path.join(input_dir, f)
-        elif 'target' in f.lower():
-            target_file = os.path.join(input_dir, f)
+    for src_file in source_files:
+        base_name = src_file.replace('source_', '', 1)
+        matching_target = f"target_{base_name}"
+        if matching_target not in target_files:
+            continue
 
-    if not source_file or not target_file:
-        raise FileNotFoundError("Both source and target files must be uploaded.")
+        source_path = os.path.join(input_dir, src_file)
+        target_path = os.path.join(input_dir, matching_target)
 
-    source_ext = os.path.splitext(source_file)[1].lower()
-    if source_ext == '.json':
-        source_data = read_json(source_file)
-        target_data = read_json(target_file)
-    elif source_ext == '.properties':
-        source_data = read_properties(source_file)
-        target_data = read_properties(target_file)
-    else:
-        raise ValueError("Unsupported file format")
+        ext = os.path.splitext(source_path)[1].lower()
+        if ext == '.json':
+            source_data = read_json(source_path)
+            target_data = read_json(target_path)
+        elif ext == '.properties':
+            source_data = read_properties(source_path)
+            target_data = read_properties(target_path)
+        else:
+            continue
 
-    filtered_data = {k: v for k, v in source_data.items() if k in target_data}
-    output_file = os.path.join(output_dir, os.path.splitext(os.path.basename(target_file))[0] + '.xliff')
-    write_xliff(filtered_data, target_file, output_file)
+        filtered_data = {k: v for k, v in source_data.items() if k in target_data}
+        output_file = os.path.join(output_dir, f"{os.path.splitext(base_name)[0]}.xliff")
+        write_xliff(filtered_data, target_path, output_file)
