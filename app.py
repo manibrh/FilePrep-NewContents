@@ -45,7 +45,8 @@ def process():
             if workflow == 'legacy' and process_type == 'preprocess':
                 # Save source files
                 for file in request.files.getlist('source_files'):
-                    filename = secure_filename(file.filename)
+                    #filename = secure_filename(file.filename)
+                   filename = file.filename
                     if filename:
                         file.save(os.path.join(input_dir, f"source_{filename}"))
 
