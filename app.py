@@ -38,7 +38,7 @@ def process():
         os.makedirs(input_dir, exist_ok=True)
         os.makedirs(output_dir, exist_ok=True)
 
-        if workflow == 'legacy' and process_type == 'preprocess':
+if workflow == 'legacy' and process_type == 'preprocess':
     for file in request.files.getlist('source_files'):
         filename = secure_filename(file.filename)
         if filename:
