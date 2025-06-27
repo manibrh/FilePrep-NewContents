@@ -18,14 +18,14 @@ os.makedirs(TEMP_OUTPUT, exist_ok=True)
 def save_files(files, folder):
     os.makedirs(folder, exist_ok=True)
     for file in files:
-        filename = file.filename  # Do NOT use secure_filename
+        filename = file.filename  # Preserve original name
         if filename:
             file.save(os.path.join(folder, filename))
 
 @app.route('/')
 def index():
     return render_template('ui.html')
-    
+
 @app.route('/userguide')
 def userguide():
     return render_template('userguide.html')
@@ -42,6 +42,8 @@ def process():
         os.makedirs(output_dir, exist_ok=True)
 
         try:
+            errors = []  # ✅ Always initialize to avoid undefined variable
+
             if workflow == 'legacy' and process_type == 'preprocess':
                 # Save source files
                 for file in request.files.getlist('source_files'):
@@ -74,14 +76,13 @@ def process():
                     errors = run_legacy_preprocessing(input_dir, output_dir)
                 else:
                     run_legacy_postprocessing(input_dir, output_dir)
-                    errors = []
 
-            # Copy results to temp output folder
+            # Copy results to static output
             if os.path.exists(TEMP_OUTPUT):
                 shutil.rmtree(TEMP_OUTPUT)
             shutil.copytree(output_dir, TEMP_OUTPUT)
 
-            # Create ZIP
+            # Create batch.zip
             zip_path = os.path.join(TEMP_OUTPUT, "batch.zip")
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for root, _, files in os.walk(TEMP_OUTPUT):
@@ -91,6 +92,7 @@ def process():
                         if not arcname.endswith("batch.zip"):
                             zipf.write(file_path, arcname=arcname)
 
+            # Build response file list
             output_files = []
             for root, _, files in os.walk(TEMP_OUTPUT):
                 for file in files:
