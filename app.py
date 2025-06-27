@@ -25,6 +25,10 @@ def save_files(files, folder):
 @app.route('/')
 def index():
     return render_template('ui.html')
+    
+@app.route('/userguide')
+def userguide():
+    return render_template('userguide.html')
 
 @app.route('/process', methods=['POST'])
 def process():
